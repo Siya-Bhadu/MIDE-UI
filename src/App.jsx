@@ -1,7 +1,9 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Layout } from 'antd';
-import Logo from './components/Logo';
+import { useState } from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import MenuList from './components/MenuList';
+import SidebarToggle from './components/SidebarToggle';
+import SidebarResizer from './components/SidebarResizer';
 
 // Pages
 import Home from './pages/Home';
@@ -14,16 +16,20 @@ import Settings from './pages/Settings';
 const { Sider, Content } = Layout;
 
 function App() {
+  const [siderWidth, setSiderWidth] = useState(260);
+  const [collapsed, setCollapsed] = useState(false);
+
   return (
     <Router>
       <Layout style={{ minHeight: '100vh' }}>
-        <Sider className="sidebar" width={275}>
-          <Logo />
+        <Sider width={siderWidth} className="sidebar" collapsible collapsed={collapsed} trigger={null}>
           <MenuList />
+          <SidebarToggle collapsed={collapsed} setCollapsed={setCollapsed} />
+          <SidebarResizer collapsed={collapsed} siderWidth={siderWidth} setSiderWidth={setSiderWidth} />
         </Sider>
 
         <Layout>
-          <Content style={{ padding: '20px', color: 'black', backgroundColor: 'white' }}>
+          <Content style={{ padding: '20px', backgroundColor: 'white', color: 'black' }}>
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/telemetry" element={<Telemetry />} />
