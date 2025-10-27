@@ -14,3 +14,33 @@ The React Compiler is not enabled on this template because of its impact on dev 
 ## Expanding the ESLint configuration
 
 If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+
+
+# Installation 
+## WSL2
+Refer to the following documentation for installing Node js with WSL2
+https://learn.microsoft.com/en-us/windows/dev-environment/javascript/nodejs-on-wsl
+```
+sudo apt-get install curl
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/master/install.sh | bash
+nvm install --lts
+nvm install node
+```
+
+## Compiling and building
+```
+npm build 
+npm run build
+```
+
+## Install typescript
+Typescript allows us to have typing/definitions into our code base (think CPP/Java) to mitigate 
+future code errors because of wrong data types being passed down
+```
+npm install --save typescript @types/node @types/react @types/react-dom @types/jest
+```
+
+# Running the code
+```
+npm run dev
+```
