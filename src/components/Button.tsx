@@ -9,7 +9,8 @@ interface ButtonProps{
     onClick: ()=>void;  
 }
 
-const Button:React.FC<ButtonProps> = ({label, color="blue", padding="10px",
+const Button:React.FC<ButtonProps> = ({label, color="blue", 
+    padding="10px",
     borderRadius="5px", onClick}) => {
     return (
         <button
