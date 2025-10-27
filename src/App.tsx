@@ -15,6 +15,11 @@ import Settings from './pages/Settings';
 
 const { Sider, Content } = Layout;
 
+/* App Component 
+Justin: I like how you broke down the buttons into modular 
+locations and marked it it as pages/components  
+What I'm going to have you do is migraet the c
+*/
 function App() {
   const [siderWidth, setSiderWidth] = useState(260);
   const [collapsed, setCollapsed] = useState(false);
