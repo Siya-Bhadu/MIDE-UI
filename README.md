@@ -27,6 +27,7 @@ nvm install --lts
 nvm install node
 ```
 
+
 ## Compiling and building
 ```
 npm build 
@@ -46,8 +47,20 @@ This needs the roslib with JS to communicate with the ROS2 servers that will run
 npm install roslib
 ```
 
+## ROS2 side 
+On the ROS2 side you need to pull/clone this repo and build it
+```
+https://github.com/StayInSchoolKiddos/ros2_trajectory_docker/tree/react-dev
+```
+Run the bridge now 
+```
+ros2 launch rosbridge_server rosbridge_websocket_launch.xml
+```
+
 # Running the code
 ```
 npm run dev
 ```
+
+
 
