@@ -40,7 +40,14 @@ future code errors because of wrong data types being passed down
 npm install --save typescript @types/node @types/react @types/react-dom @types/jest
 ```
 
+## ROS2 dependencies
+This needs the roslib with JS to communicate with the ROS2 servers that will run ROS2
+```
+npm install roslib
+```
+
 # Running the code
 ```
 npm run dev
 ```
+

@@ -17,4 +17,6 @@
 # Notes Justin 11/2/2025
 - I added an additional library to interact with ROS2 using Javascript
 - Might need to allow user to change the topic name for telemetry of drone? -> Future
-- Need to understand more of this React lingo
+- Need to understand more of this React lingo   
+- From ros2_trajectory_docker need to branch from the react branch
+- Need to clean up file directories and modules
