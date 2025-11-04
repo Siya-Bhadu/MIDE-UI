@@ -1,17 +1,77 @@
 // src/pages/Telemetry.tsx
-import { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Layout, Row, Col, Card, Tag, Typography } from "antd";
 import ROSLIB from "roslib";
 import { useRos } from "../context/ros_context";
 import { OdometryMsg } from "../msg/OdometryMsg";
 import { quatToEulerRPY, timeToSeconds } from "../utils/conversions";
 
-// --- Component ---
+const { Content } = Layout;
+const { Title, Text } = Typography;
+
+
+interface InfoBoxProps { label: string; value?: string | number; }
+const InfoBox: React.FC<InfoBoxProps> = ({ label, value }) => (
+  <div style={{ background:"#fafafa", border:"1px solid #eee", borderRadius:8, padding:8 }}>
+    <Text strong>{label}</Text>{value !== undefined ? <Text>: {value}</Text> : null}
+  </div>
+);
+
+interface DroneStatusPanelProps { data: InfoBoxProps[]; }
+const DroneStatusPanel: React.FC<DroneStatusPanelProps> = ({ data }) => (
+  <Card title="Drone Status">
+    <Row gutter={[8, 8]}>
+      {data.map((d, i) => (
+        <Col xs={24} sm={12} key={i}>
+          <InfoBox label={d.label} value={d.value} />
+        </Col>
+      ))}
+    </Row>
+  </Card>
+);
+
+const GPSMapPanel: React.FC = () => (
+  <Card
+    title="GPS Map"
+    styles={{ body: { minHeight: 240, display: "grid", placeItems: "center" } }}
+  >
+    <Text type="secondary">Map Placeholder</Text>
+  </Card>
+);
+
+const Aircraft3DModelPanel: React.FC = () => (
+  <Card
+    title="Aircraft 3D Model"
+    styles={{ body: { minHeight: 240, display: "grid", placeItems: "center" } }}
+  >
+    <Text type="secondary">3D Model Placeholder</Text>
+  </Card>
+);
+
+const TelemetryChartPanel: React.FC = () => (
+  <Card
+    title="Telemetry Chart/List"
+    styles={{ body: { minHeight: 240, display: "grid", placeItems: "center" } }}
+  >
+    <Text type="secondary">List or chart goes here</Text>
+  </Card>
+);
+
+// ───────────────────────────────────────────────────────────────────────────────
+// Main page component with ROS hookup
+// ───────────────────────────────────────────────────────────────────────────────
 interface TelemetryProps {
-  /** Odometry topic name; defaults to '/odom' */
+  /** Odometry topic name; defaults to MAVROS local position */
   odomTopic?: string;
+  /** rosbridge message type; rosbridge2 uses "nav_msgs/msg/Odometry", classic uses "nav_msgs/Odometry" */
+  odomMsgType?: string;
 }
 
-export default function Telemetry({ odomTopic = "mavros/local_position/odom" }: TelemetryProps) {
+// This is the main driver for the layout and uses the ROS2 connection
+const Telemetry: React.FC<TelemetryProps> = ({
+  odomTopic = "mavros/local_position/odom",
+  odomMsgType = "nav_msgs/msg/Odometry", // change to "nav_msgs/Odometry" if using classic rosbridge
+}) => {
   const { ros, isConnected } = useRos();
 
   const [odom, setOdom] = useState<OdometryMsg | null>(null);
@@ -25,19 +85,17 @@ export default function Telemetry({ odomTopic = "mavros/local_position/odom" }: 
       return new ROSLIB.Topic({
         ros,
         name: odomTopic,
-        messageType: "nav_msgs/msg/Odometry", // ROS 2 message type
+        messageType: odomMsgType,
         queue_size: 1,
       });
     } catch (e) {
       console.error("[Telemetry] Failed to create Topic:", e);
       return null;
     }
-  }, [ros, isConnected, odomTopic]);
+  }, [ros, isConnected, odomTopic, odomMsgType]);
 
   useEffect(() => {
     if (!topic) return;
-
-    // keep a ref so we can unsubscribe on cleanup
     topicRef.current = topic;
 
     const cb = (msg: OdometryMsg) => {
@@ -45,7 +103,6 @@ export default function Telemetry({ odomTopic = "mavros/local_position/odom" }: 
       setLastStamp(timeToSeconds(msg.header));
     };
 
-    // subscribe
     topic.subscribe(cb);
     console.log(`[Telemetry] Subscribed to ${odomTopic}`);
 
@@ -53,95 +110,69 @@ export default function Telemetry({ odomTopic = "mavros/local_position/odom" }: 
       try {
         topic.unsubscribe(cb);
         console.log(`[Telemetry] Unsubscribed from ${odomTopic}`);
-      } catch {
-        /* noop */
-      }
+      } catch {/* noop */}
       topicRef.current = null;
     };
   }, [topic, odomTopic]);
 
-  // Render
+  // Derived telemetry
   const pos = odom?.pose.pose.position;
   const ori = odom?.pose.pose.orientation;
-  const twLin = odom?.twist.twist.linear;
-  const twAng = odom?.twist.twist.angular;
-  
+  const twLin = odom?.twist?.twist?.linear;
+  const twAng = odom?.twist?.twist?.angular;
+
   const { roll, pitch, yaw } = ori ? quatToEulerRPY(ori) : { roll: 0, pitch: 0, yaw: 0 };
-  
-  return (
-    <div style={{ display: "grid", gap: 12 }}>
-      <h1>Telemetry</h1>
 
-      <div style={{ fontSize: 13, opacity: 0.8 }}>
-        Status: {isConnected ? "✅ Connected" : "❌ Disconnected"} &nbsp;|&nbsp; Topic:{" "}
-        <code>{odomTopic}</code>
-      </div>
+  const groundSpeed = useMemo(() => {
+    if (twLin?.x === undefined || twLin?.y === undefined) return undefined;
+    return Math.sqrt(twLin.x * twLin.x + twLin.y * twLin.y);
+  }, [twLin?.x, twLin?.y]);
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(3, minmax(160px, 1fr))",
-          gap: 12,
-        }}
-      >
-        <Card title="Position (m)">
-          <KV label="x" value={pos?.x} />
-          <KV label="y" value={pos?.y} />
-          <KV label="z" value={pos?.z} />
-        </Card>
+  // Helper to show numbers nicely
+  const fmt = (v?: number | null, digits = 3) =>
+    typeof v === "number" ? v.toFixed(digits) : "-";
 
-        <Card title="Orientation">
-          <KV label="roll (deg)" value={roll != null ? (roll * 180) / Math.PI : null} />
-          <KV label="pitch (deg)" value={pitch != null ? (pitch * 180) / Math.PI : null} />
-          <KV label="yaw (deg)" value={yaw != null ? (yaw * 180) / Math.PI : null} />
-        </Card>
-
-
-        <Card title="Velocity">
-          <KV label="vx (m/s)" value={twLin?.x} />
-          <KV label="vy (m/s)" value={twLin?.y} />
-          <KV label="vz (m/s)" value={twLin?.z} />
-          <KV label="ωz (rad/s)" value={twAng?.z} />
-        </Card>
-      </div>
-
-      <div style={{ fontSize: 12, opacity: 0.7 }}>
-        Stamp (sec): {lastStamp != null ? lastStamp.toFixed(3) : "—"}
-      </div>
-    </div>
+  // Build the status grid (feeds InfoBox components)
+  const droneStatusData: InfoBoxProps[] = useMemo(
+    () => [
+      { label: "Altitude (m)", value: fmt(pos?.z) },
+      { label: "Ground Speed (m/s)", value: fmt(groundSpeed) },
+      { label: "Dist to WP (m)", value: "-" },           // needs /mavros/distance_sensor or mission topic
+      { label: "Roll (deg)", value: fmt((roll * 180) / Math.PI) },
+      { label: "Vertical Speed (m/s)", value: fmt(twLin?.z) },
+      { label: "Pitch (deg)", value: fmt((pitch * 180) / Math.PI) },
+      { label: "DistToMAV (m)", value: "-" },            // requires another topic/reference
+      { label: "Yaw (deg)", value: fmt((yaw * 180) / Math.PI) },
+    ],
+    [pos?.z, groundSpeed, roll, pitch, yaw, twLin?.z]
   );
-}
 
-// Simple presentational helpers
-function Card({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
+  // Keeping with Siya's layout we're using ANTD to adjust the layout of the panels
   return (
-    <div
-      style={{
-        border: "1px solid #e5e7eb",
-        borderRadius: 12,
-        padding: 12,
-        boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
-      }}
-    >
-      <div style={{ fontWeight: 600, marginBottom: 8 }}>{title}</div>
-      <div style={{ display: "grid", gap: 6 }}>{children}</div>
-    </div>
-  );
-}
+    <Content style={{ padding: 16, display: "flex", flex: 1, minWidth: 0 }}>
+      <div style={{ width: "100%" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+          <Title level={2} style={{ margin: 0 }}>Telemetry</Title>
+          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+            <Tag color={isConnected ? "green" : "red"}>
+              Status: {isConnected ? "Connected to Drone" : "Disconnected"}
+            </Tag>
+            <Text type="secondary">
+              Topic: <code>{odomTopic}</code>
+              {"  "} | Stamp: {lastStamp != null ? lastStamp.toFixed(3) : "—"}
+            </Text>
+          </div>
+        </div>
 
-function KV({ label, value }: { label: string; value?: number | null }) {
-  const text =
-    typeof value === "number" ? value.toFixed(3) : value != null ? String(value) : "—";
-  return (
-    <div style={{ display: "flex", justifyContent: "space-between" }}>
-      <span style={{ opacity: 0.7 }}>{label}</span>
-      <span style={{ fontFamily: "mono" }}>{text}</span>
-    </div>
+        <Row gutter={[16, 16]}>
+          <Col xs={24} lg={12}><Aircraft3DModelPanel /></Col>
+          <Col xs={24} lg={12}><GPSMapPanel /></Col>
+          <Col xs={24} lg={12}><DroneStatusPanel data={droneStatusData} /></Col>
+          <Col xs={24} lg={12}><TelemetryChartPanel /></Col>
+        </Row>
+      </div>
+    </Content>
   );
-}
+};
+
+export default Telemetry;

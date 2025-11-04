@@ -8,7 +8,7 @@ export default function Home() {
     <div>
       <h1>Home</h1>
       <p>ROS Connection: {isConnected ? "✅ Connected" : "❌ Disconnected"}</p>
-      <pre>{ros ? JSON.stringify(ros, null, 2) : "No ROS instance yet"}</pre>
+      {/* <pre>{ros ? JSON.stringify(ros, null, 2) : "No ROS instance yet"}</pre> */}
     </div>
   );
 }

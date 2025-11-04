@@ -64,21 +64,7 @@ function App(): JSX.Element {
                 backgroundColor: "white",
                 color: "black",
                 position: "relative",
-              }}
-            >
-              {/* Small indicator in the corner */}
-              <div
-                style={{
-                  position: "absolute",
-                  top: 10,
-                  right: 16,
-                  fontSize: 13,
-                  color: isConnected ? "green" : "red",
-                }}
-              >
-                {isConnected ? "ROS Connected ✅" : "ROS Disconnected ❌"}
-              </div>
-
+              }}>
               <Routes>
                 <Route path="/" element={<Home />} />
                 <Route path="/telemetry" element={<Telemetry />} />
