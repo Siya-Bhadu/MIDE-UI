@@ -2,41 +2,17 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import ROSLIB from "roslib";
 import { useRos } from "../context/ros_context";
-
-// --- Minimal TS types for Odometry (ROS 2) ---
-type Header = {
-  stamp?: { sec?: number; nanosec?: number };
-  frame_id?: string;
-};
-
-type Vector3 = { x: number; y: number; z: number };
-type Quaternion = { x: number; y: number; z: number; w: number };
-
-type Pose = {
-  pose: {
-    position: Vector3;
-    orientation: Quaternion;
-  };
-};
-
-type Twist = {
-  twist: {
-    linear: Vector3;
-    angular: Vector3;
-  };
-};
-
-type OdometryMsg = {
-  header?: Header;
-  child_frame_id?: string;
-  pose: Pose;
-  twist: Twist;
-};
+import {Header} from "../msg/Header"
+import { Quaternion } from "roslib";
+import { OdometryMsg } from "../msg/OdometryMsg";
 
 // --- Helpers ---
 function quatToYaw(q: Quaternion): number {
-  // yaw (Z) from quaternion
-  const { x, y, z, w } = q;
+  // yaw (Z) from quaternio
+  const x = q.x;
+  const y = q.y;
+  const z = q.z;
+  const w = q.w;
   const siny_cosp = 2 * (w * z + x * y);
   const cosy_cosp = 1 - 2 * (y * y + z * z);
   return Math.atan2(siny_cosp, cosy_cosp);

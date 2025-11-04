@@ -1,5 +1,4 @@
 import React from "react";
-
 type ButtonVariant = "primary" | "success" | "danger" | "secondary";
 
 interface ButtonProps {
