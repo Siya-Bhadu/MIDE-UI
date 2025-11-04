@@ -2,27 +2,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import ROSLIB from "roslib";
 import { useRos } from "../context/ros_context";
-import {Header} from "../msg/Header"
-import { Quaternion } from "roslib";
 import { OdometryMsg } from "../msg/OdometryMsg";
-
-// --- Helpers ---
-function quatToYaw(q: Quaternion): number {
-  // yaw (Z) from quaternio
-  const x = q.x;
-  const y = q.y;
-  const z = q.z;
-  const w = q.w;
-  const siny_cosp = 2 * (w * z + x * y);
-  const cosy_cosp = 1 - 2 * (y * y + z * z);
-  return Math.atan2(siny_cosp, cosy_cosp);
-}
-
-function timeToSeconds(h?: Header): number | null {
-  if (!h?.stamp || typeof h.stamp.sec !== "number") return null;
-  const ns = typeof h.stamp.nanosec === "number" ? h.stamp.nanosec : 0;
-  return h.stamp.sec + ns * 1e-9;
-}
+import { quatToEulerRPY, timeToSeconds } from "../utils/conversions";
 
 // --- Component ---
 interface TelemetryProps {
@@ -84,8 +65,9 @@ export default function Telemetry({ odomTopic = "mavros/local_position/odom" }: 
   const ori = odom?.pose.pose.orientation;
   const twLin = odom?.twist.twist.linear;
   const twAng = odom?.twist.twist.angular;
-  const yaw = ori ? quatToYaw(ori) : null;
-
+  
+  const { roll, pitch, yaw } = ori ? quatToEulerRPY(ori) : { roll: 0, pitch: 0, yaw: 0 };
+  
   return (
     <div style={{ display: "grid", gap: 12 }}>
       <h1>Telemetry</h1>
@@ -109,9 +91,11 @@ export default function Telemetry({ odomTopic = "mavros/local_position/odom" }: 
         </Card>
 
         <Card title="Orientation">
-          <KV label="yaw (rad)" value={yaw} />
+          <KV label="roll (deg)" value={roll != null ? (roll * 180) / Math.PI : null} />
+          <KV label="pitch (deg)" value={pitch != null ? (pitch * 180) / Math.PI : null} />
           <KV label="yaw (deg)" value={yaw != null ? (yaw * 180) / Math.PI : null} />
         </Card>
+
 
         <Card title="Velocity">
           <KV label="vx (m/s)" value={twLin?.x} />
