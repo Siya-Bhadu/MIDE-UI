@@ -34,3 +34,19 @@ a
 -[] Might need to include a status to show we are connected to the drone from the pane
 -[] Rotation of Drone/Animation Three.js as framework https://eyes.nasa.gov/apps/mars2020/#/home
 - [] Update Justin's bad code to get the information that we need for ROS2 
+    - From Telemetry.tsx and SidebarResizer update other pages with typing like React - DONE
+    - Build up Telmetry panels from wireframe with React: - DONE
+        - Going to need to figure out a gps/map module that can be predownloaded to show location of drone when flying
+        - Might need to include a status to show we are connected to the drone from the pane - DONE
+        - Rotation of Drone/Animation Three.js as framework https://eyes.nasa.gov/apps/mars2020/#/home
+- Justin -> Socket ROS2 to React with barebones example on updating telemetry 
+
+
+For DJI drones
+- DJI Fly App (for DJI RC and RC Pro): This is the most straightforward option for users with a DJI RC or RC Pro controller. The standard app allows you to download and cache maps of specific areas for offline use.
+- Litchi for DJI Drones: This third-party application offers advanced waypoint mission planning and supports offline mapping. It is a popular choice for pilots who need more control and offline functionality beyond the standard DJI app.
+- Map Pilot Pro: For professional photogrammetry and mapping, this iOS app lets you cache basemaps for offline operations and import custom terrain data. It is fully capable of offline functionality.
+- UgCS: This professional mission planning tool is excellent for complex missions and challenging terrain. The free UgCS Open version includes offline map functionality and supports various drone brands, including DJI. 
+For open-source platforms (ArduPilot/PX4)
+- QGroundControl: The standard ground control software for drones using ArduPilot or PX4 flight controllers. It supports offline map caching and offers unmatched customization for advanced users.
+- UgCS: With its broad platform support, UgCS works for drones with ArduPilot flight controllers. The free UgCS Open version is excellent for offline mapping in remote areas. 

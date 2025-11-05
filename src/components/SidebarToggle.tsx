@@ -1,6 +1,12 @@
-import { MenuOutlined } from '@ant-design/icons';
+import React from "react";
+import { MenuOutlined } from "@ant-design/icons";
 
-const SidebarToggle = ({ collapsed, setCollapsed }) => {
+type SidebarToggleProps = {
+  collapsed: boolean;
+  setCollapsed: React.Dispatch<React.SetStateAction<boolean>>;
+};
+
+const SidebarToggle: React.FC<SidebarToggleProps> = ({ collapsed, setCollapsed }) => {
   return (
     <MenuOutlined
       onClick={() => setCollapsed(!collapsed)}

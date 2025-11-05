@@ -1,8 +1,9 @@
 import { Menu } from 'antd';
 import { Link } from 'react-router-dom';
 import { HomeOutlined, AppstoreOutlined, AreaChartOutlined, PayCircleOutlined, SettingOutlined } from '@ant-design/icons';
+import React from 'react';
 
-const MenuList = () => {
+const MenuList: React.FunctionComponent= () => {
   return (
     <Menu theme="dark" mode="inline" className="menu-bar" selectable={false}>
       <Menu.Item key="home" icon={<HomeOutlined />}>
