@@ -1,124 +1,177 @@
-import React from "react";
+// src/pages/Telemetry.tsx
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Layout, Row, Col, Card, Tag, Typography } from "antd";
+import ROSLIB from "roslib";
+import { useRos } from "../context/ros_context";
+import { OdometryMsg } from "../msg/OdometryMsg";
+import { quatToEulerRPY, timeToSeconds } from "../utils/conversions";
 
-/**
- * Justin: We're going to update this page to use Typescript to allow type checking
- * I'd like you to do this for all the other pages as well just
- */
+const { Content } = Layout;
+const { Title, Text } = Typography;
 
-// Props is short for properties
-interface TelemetryProps {}
 
-// This is to be used/expanded/changed for when we connect to the drone, might be moved later
-class DroneConnection {
-  /**
-    - Just like CPP we can define methods, attributes as public, private, protected
-    - Refer to the types of data allowed in Typescript documentation 
-  */  
-  public drone_name: string;
-  private states: Float32List[];
-  private isActive: boolean = false;
+interface InfoBoxProps { label: string; value?: string | number; }
+const InfoBox: React.FC<InfoBoxProps> = ({ label, value }) => (
+  <div style={{ background:"#fafafa", border:"1px solid #eee", borderRadius:8, padding:8 }}>
+    <Text strong>{label}</Text>{value !== undefined ? <Text>: {value}</Text> : null}
+  </div>
+);
 
-  constructor(drone_name: string, states: Float32List[] = []) {
-    this.drone_name = drone_name;
-    this.states = states;
-  }
-
-  public updateStates(newStates: Float32List[]): void {
-    this.states = newStates;
-  }
-}
-
-// Reusable InfoBox component for Drone Status
-interface InfoBoxProps {
-  label: string;
-  value?: string | number; // value optional for now
-}
-
-const InfoBox: React.FC<InfoBoxProps> = ({ label, value }) => {
-  return (
-    <div className="telemetry-inner-box">
-      {label}{value !== undefined ? `: ${value}` : ""}
-    </div>
-  );
-};
-
-// Panel components
-interface DroneStatusPanelProps {
-  data: InfoBoxProps[];
-}
-const DroneStatusPanel: React.FC<DroneStatusPanelProps> = ({ data }) => {
-  return (
-    <div className="telemetry-panel droneStatus">
-      <h2>Drone Status</h2>
-      <div className="telemetry-inner-grid">
-        {data.map((item, i) => (
-          <InfoBox key={i} label={item.label} value={item.value} />
-        ))}
-      </div>
-    </div>
-  );
-};
+interface DroneStatusPanelProps { data: InfoBoxProps[]; }
+const DroneStatusPanel: React.FC<DroneStatusPanelProps> = ({ data }) => (
+  <Card title="Drone Status">
+    <Row gutter={[8, 8]}>
+      {data.map((d, i) => (
+        <Col xs={24} sm={12} key={i}>
+          <InfoBox label={d.label} value={d.value} />
+        </Col>
+      ))}
+    </Row>
+  </Card>
+);
 
 const GPSMapPanel: React.FC = () => (
-  <div className="telemetry-panel gpsMap">
-    <h2>GPS Map</h2>
-    <div className="panel-content-center">Map Placeholder</div>
-  </div>
+  <Card
+    title="GPS Map"
+    styles={{ body: { minHeight: 240, display: "grid", placeItems: "center" } }}
+  >
+    <Text type="secondary">Map Placeholder</Text>
+  </Card>
 );
 
 const Aircraft3DModelPanel: React.FC = () => (
-  <div className="telemetry-panel aircraft3DModel">
-    <h2>Aircraft 3D Model</h2>
-    <div className="panel-content-center">3D Model Placeholder</div>
-  </div>
+  <Card
+    title="Aircraft 3D Model"
+    styles={{ body: { minHeight: 240, display: "grid", placeItems: "center" } }}
+  >
+    <Text type="secondary">3D Model Placeholder</Text>
+  </Card>
 );
 
 const TelemetryChartPanel: React.FC = () => (
-  <div className="telemetry-panel telemetryChart">
-    <h2>Telemetry Chart/List</h2>
-    <div className="panel-content-center">List or chart goes here</div>
-  </div>
+  <Card
+    title="Telemetry Chart/List"
+    styles={{ body: { minHeight: 240, display: "grid", placeItems: "center" } }}
+  >
+    <Text type="secondary">List or chart goes here</Text>
+  </Card>
 );
 
-// Function component
-const Telemetry: React.FC<TelemetryProps> = () => {
-  return <TelemetryContent />;
-};
+// ───────────────────────────────────────────────────────────────────────────────
+// Main page component with ROS hookup
+// ───────────────────────────────────────────────────────────────────────────────
+interface TelemetryProps {
+  /** Odometry topic name; defaults to MAVROS local position */
+  odomTopic?: string;
+  /** rosbridge message type; rosbridge2 uses "nav_msgs/msg/Odometry", classic uses "nav_msgs/Odometry" */
+  odomMsgType?: string;
+}
 
-const TelemetryContent: React.FC = () => {
-  // Dummy variable for connection status
-  const isConnected: boolean = true; // Placeholder, will later come from backend
+// This is the main driver for the layout and uses the ROS2 connection
+const Telemetry: React.FC<TelemetryProps> = ({
+  odomTopic = "mavros/local_position/odom",
+  odomMsgType = "nav_msgs/msg/Odometry", // change to "nav_msgs/Odometry" if using classic rosbridge
+}) => {
+  const { ros, isConnected } = useRos();
 
-  // Labels for Drone Status
-  const droneStatusData: InfoBoxProps[] = [
-    { label: "Altitude (m)", value: "-" },
-    { label: "Ground Speed/Air Speed (m/s)", value: "-" },
-    { label: "Dist to WP (m)", value: "-" },
-    { label: "Roll (deg)", value: "-" },
-    { label: "Vertical Speed (m/s)", value: "-" },
-    { label: "Pitch (deg)", value: "-" },
-    { label: "DistToMAV (m)", value: "-" },
-    { label: "Yaw (deg)", value: "-" },
-  ];
+  const [odom, setOdom] = useState<OdometryMsg | null>(null);
+  const [lastStamp, setLastStamp] = useState<number | null>(null);
+  const topicRef = useRef<ROSLIB.Topic | null>(null);
 
+  // Create the Topic only when ros + connection + name are ready
+  const topic = useMemo(() => {
+    if (!ros || !isConnected) return null;
+    try {
+      return new ROSLIB.Topic({
+        ros,
+        name: odomTopic,
+        messageType: odomMsgType,
+        queue_size: 1,
+      });
+    } catch (e) {
+      console.error("[Telemetry] Failed to create Topic:", e);
+      return null;
+    }
+  }, [ros, isConnected, odomTopic, odomMsgType]);
+
+  useEffect(() => {
+    if (!topic) return;
+    topicRef.current = topic;
+
+    const cb = (msg: OdometryMsg) => {
+      setOdom(msg);
+      setLastStamp(timeToSeconds(msg.header));
+    };
+
+    topic.subscribe(cb);
+    console.log(`[Telemetry] Subscribed to ${odomTopic}`);
+
+    return () => {
+      try {
+        topic.unsubscribe(cb);
+        console.log(`[Telemetry] Unsubscribed from ${odomTopic}`);
+      } catch {/* noop */}
+      topicRef.current = null;
+    };
+  }, [topic, odomTopic]);
+
+  // Derived telemetry
+  const pos = odom?.pose.pose.position;
+  const ori = odom?.pose.pose.orientation;
+  const twLin = odom?.twist?.twist?.linear;
+  const twAng = odom?.twist?.twist?.angular;
+
+  const { roll, pitch, yaw } = ori ? quatToEulerRPY(ori) : { roll: 0, pitch: 0, yaw: 0 };
+
+  const groundSpeed = useMemo(() => {
+    if (twLin?.x === undefined || twLin?.y === undefined) return undefined;
+    return Math.sqrt(twLin.x * twLin.x + twLin.y * twLin.y);
+  }, [twLin?.x, twLin?.y]);
+
+  // Helper to show numbers nicely
+  const fmt = (v?: number | null, digits = 3) =>
+    typeof v === "number" ? v.toFixed(digits) : "-";
+
+  // Build the status grid (feeds InfoBox components)
+  const droneStatusData: InfoBoxProps[] = useMemo(
+    () => [
+      { label: "Altitude (m)", value: fmt(pos?.z) },
+      { label: "Ground Speed (m/s)", value: fmt(groundSpeed) },
+      { label: "Dist to WP (m)", value: "-" },           // needs /mavros/distance_sensor or mission topic
+      { label: "Roll (deg)", value: fmt((roll * 180) / Math.PI) },
+      { label: "Vertical Speed (m/s)", value: fmt(twLin?.z) },
+      { label: "Pitch (deg)", value: fmt((pitch * 180) / Math.PI) },
+      { label: "DistToMAV (m)", value: "-" },            // requires another topic/reference
+      { label: "Yaw (deg)", value: fmt((yaw * 180) / Math.PI) },
+    ],
+    [pos?.z, groundSpeed, roll, pitch, yaw, twLin?.z]
+  );
+
+  // Keeping with Siya's layout we're using ANTD to adjust the layout of the panels
   return (
-    <div className="telemetry-page">
-      {/* Top bar: title + status */}
-      <div className="telemetry-header">
-        <h1>Telemetry</h1>
-        <span className={`status-badge ${isConnected ? "connected" : "disconnected"}`}>
-          Status: {isConnected ? "Connected to Drone" : "Disconnected"}
-        </span>
-      </div>
+    <Content style={{ padding: 16, display: "flex", flex: 1, minWidth: 0 }}>
+      <div style={{ width: "100%" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+          <Title level={2} style={{ margin: 0 }}>Telemetry</Title>
+          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+            <Tag color={isConnected ? "green" : "red"}>
+              Status: {isConnected ? "Connected to Drone" : "Disconnected"}
+            </Tag>
+            <Text type="secondary">
+              Topic: <code>{odomTopic}</code>
+              {"  "} | Stamp: {lastStamp != null ? lastStamp.toFixed(3) : "—"}
+            </Text>
+          </div>
+        </div>
 
-      {/* 4 Panel Dashboard */}
-      <div className="telemetry-grid">
-        <Aircraft3DModelPanel />  
-        <GPSMapPanel />           
-        <DroneStatusPanel data={droneStatusData} /> 
-        <TelemetryChartPanel />  
+        <Row gutter={[16, 16]}>
+          <Col xs={24} lg={12}><Aircraft3DModelPanel /></Col>
+          <Col xs={24} lg={12}><GPSMapPanel /></Col>
+          <Col xs={24} lg={12}><DroneStatusPanel data={droneStatusData} /></Col>
+          <Col xs={24} lg={12}><TelemetryChartPanel /></Col>
+        </Row>
       </div>
-    </div>
+    </Content>
   );
 };
 
