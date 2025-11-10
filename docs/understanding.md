@@ -1,5 +1,6 @@
 ## These are notes that are helpful in understanding TypeScript and its functionality
 
+'''JSX
 // ───────────────────────────────────────────────────────────────────────────────
 // Main page component with ROS hookup
 // ───────────────────────────────────────────────────────────────────────────────
@@ -126,7 +127,7 @@ const Telemetry: React.FC<TelemetryProps> = ({
 };
 
 export default Telemetry;
-
+'''
 
 - index.d.ts is the TypeScript definition file for ROSLIB.js, essentially a dictionary describing ROSLIB's classes and functions
 - Describes the shapes of objects, classes and functions, describes what methods exist, helps VSCode with autocomplete, helps TypeScript warn you when you use ROSLIB wrong
