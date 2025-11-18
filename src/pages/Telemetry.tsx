@@ -5,6 +5,10 @@ import ROSLIB from "roslib";
 import { useRos } from "../context/ros_context";
 import { OdometryMsg } from "../msg/OdometryMsg";
 import { quatToEulerRPY, timeToSeconds } from "../utils/conversions";
+import "../index.css";
+import StatusBadge from "../components/StatusBadge";
+import "leaflet/dist/leaflet.css";
+import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 
 const { Content } = Layout;
 const { Title, Text } = Typography;
@@ -12,14 +16,14 @@ const { Title, Text } = Typography;
 
 interface InfoBoxProps { label: string; value?: string | number; }
 const InfoBox: React.FC<InfoBoxProps> = ({ label, value }) => (
-  <div style={{ background:"#fafafa", border:"1px solid #eee", borderRadius:8, padding:8 }}>
+  <div className="info-box">
     <Text strong>{label}</Text>{value !== undefined ? <Text>: {value}</Text> : null}
   </div>
 );
 
 interface DroneStatusPanelProps { data: InfoBoxProps[]; }
 const DroneStatusPanel: React.FC<DroneStatusPanelProps> = ({ data }) => (
-  <Card title="Drone Status">
+  <Card title="Drone Status" className="telemetry-card panel-drone-status">
     <Row gutter={[8, 8]}>
       {data.map((d, i) => (
         <Col xs={24} sm={12} key={i}>
@@ -30,30 +34,44 @@ const DroneStatusPanel: React.FC<DroneStatusPanelProps> = ({ data }) => (
   </Card>
 );
 
-const GPSMapPanel: React.FC = () => (
-  <Card
-    title="GPS Map"
-    styles={{ body: { minHeight: 240, display: "grid", placeItems: "center" } }}
-  >
-    <Text type="secondary">Map Placeholder</Text>
-  </Card>
-);
+const GPSMapPanel: React.FC = () => {
+  const position: [number, number] = [39.0997, -94.5786]; // Kansas City
+
+  return (
+    <Card title="GPS Map" className="telemetry-card panel-gps-map">
+      <div style={{ height: "400px", width: "100%" }}>
+        <MapContainer
+          center={position}
+          zoom={13}
+          scrollWheelZoom={true}
+          style={{ height: "100%", width: "100%" }}
+        >
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
+          <Marker position={position}>
+            <Popup>Hello from Kansas City!</Popup>
+          </Marker>
+        </MapContainer>
+      </div>
+    </Card>
+  );
+};
 
 const Aircraft3DModelPanel: React.FC = () => (
-  <Card
-    title="Aircraft 3D Model"
-    styles={{ body: { minHeight: 240, display: "grid", placeItems: "center" } }}
-  >
-    <Text type="secondary">3D Model Placeholder</Text>
+  <Card title="Aircraft 3D Model" className="telemetry-card panel-aircraft-3d">
+    <div className="panel-content-center">
+      <Text type="secondary">3D Model Placeholder</Text>
+    </div>
   </Card>
 );
 
 const TelemetryChartPanel: React.FC = () => (
-  <Card
-    title="Telemetry Chart/List"
-    styles={{ body: { minHeight: 240, display: "grid", placeItems: "center" } }}
-  >
-    <Text type="secondary">List or chart goes here</Text>
+  <Card title="Telemetry Chart/List" className="telemetry-card panel-chart">
+    <div className="panel-content-center">
+      <Text type="secondary">List or chart goes here</Text>
+    </div>
   </Card>
 );
 
@@ -147,30 +165,20 @@ const Telemetry: React.FC<TelemetryProps> = ({
     [pos?.z, groundSpeed, roll, pitch, yaw, twLin?.z]
   );
 
-  // Keeping with Siya's layout we're using ANTD to adjust the layout of the panels
-  return (
-    <Content style={{ padding: 16, display: "flex", flex: 1, minWidth: 0 }}>
-      <div style={{ width: "100%" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-          <Title level={2} style={{ margin: 0 }}>Telemetry</Title>
-          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-            <Tag color={isConnected ? "green" : "red"}>
-              Status: {isConnected ? "Connected to Drone" : "Disconnected"}
-            </Tag>
-            <Text type="secondary">
-              Topic: <code>{odomTopic}</code>
-              {"  "} | Stamp: {lastStamp != null ? lastStamp.toFixed(3) : "—"}
-            </Text>
-          </div>
-        </div>
-
-        <Row gutter={[16, 16]}>
-          <Col xs={24} lg={12}><Aircraft3DModelPanel /></Col>
-          <Col xs={24} lg={12}><GPSMapPanel /></Col>
-          <Col xs={24} lg={12}><DroneStatusPanel data={droneStatusData} /></Col>
-          <Col xs={24} lg={12}><TelemetryChartPanel /></Col>
-        </Row>
+  // Updated & Moved Styling to index.css - Siya
+    return (
+    <Content className="telemetry-wrapper">
+      <div className="telemetry-header">
+        <Title level={2}>Telemetry</Title>
+        <StatusBadge topicName={odomTopic} lastStamp={lastStamp} />
       </div>
+
+      <Row gutter={[16, 16]}>
+        <Col xs={24} lg={12}><Aircraft3DModelPanel /></Col>
+        <Col xs={24} lg={12}><GPSMapPanel /></Col>
+        <Col xs={24} lg={12}><DroneStatusPanel data={droneStatusData} /></Col>
+        <Col xs={24} lg={12}><TelemetryChartPanel /></Col>
+      </Row>
     </Content>
   );
 };

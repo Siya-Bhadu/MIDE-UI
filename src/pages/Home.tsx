@@ -1,14 +1,18 @@
-// src/pages/Home.tsx
-import { useRos } from "../context/ros_context";
+import React from "react";
+import { Typography } from "antd";
+import StatusBadge from "../components/StatusBadge";
 
-export default function Home() {
-  const { ros, isConnected } = useRos();
+const { Title } = Typography;
 
+const Home: React.FC = () => {
   return (
-    <div>
-      <h1>Home</h1>
-      <p>ROS Connection: {isConnected ? "✅ Connected" : "❌ Disconnected"}</p>
-      {/* <pre>{ros ? JSON.stringify(ros, null, 2) : "No ROS instance yet"}</pre> */}
+    <div className="home-wrapper">
+      <div className="home-header">
+        <Title level={2}>Home</Title>
+        <StatusBadge />
+      </div>
     </div>
   );
-}
+};
+
+export default Home;

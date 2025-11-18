@@ -1,6 +1,6 @@
 ## These are notes that are helpful in understanding TypeScript and its functionality
 
-'''JSX
+```TSX
 // ───────────────────────────────────────────────────────────────────────────────
 // Main page component with ROS hookup
 // ───────────────────────────────────────────────────────────────────────────────
@@ -127,7 +127,7 @@ const Telemetry: React.FC<TelemetryProps> = ({
 };
 
 export default Telemetry;
-'''
+```
 
 - index.d.ts is the TypeScript definition file for ROSLIB.js, essentially a dictionary describing ROSLIB's classes and functions
 - Describes the shapes of objects, classes and functions, describes what methods exist, helps VSCode with autocomplete, helps TypeScript warn you when you use ROSLIB wrong
@@ -135,8 +135,8 @@ export default Telemetry;
 What we actually care about:
 1. ROSLIB.Ros - export class Ros extends EventEmitter2 {} 
 - It represents the connection to rosbridge, connects/disconnects, retrieves topics/services if needed
-2. ROSLIB.Topic - represents a single ROS Topic. If we were to, when we add another topic, we would reuse this!!!
-
+2. ROSLIB.Topic - represents a single ROS Topic. If we were to, when we add another topic, we would reuse this!
+```TSX
 export class Topic<TMessage = Message> {
     subscribe(callback)
     unsubscribe(callback)
@@ -149,8 +149,9 @@ Used in Telemetry: new ROSLIB.Topic({
     name: odomTopic,           // e.g., "mavros/local_position/odom"
     messageType: odomMsgType,  // e.g., "nav_msgs/msg/Odometry"
 })
+```
 3. ROSLIB.Message
-- Used when published messages, don't currently use.
+- Used when published messages (We don't currently use)
 
 Process of adding another Topic:
 1. Create a new state variable (useState)
