@@ -18,17 +18,18 @@
 .menu-bar {
   height: 88vh;
   margin-top: 2rem; 
+  top:25px;
   display: flex;
   flex-direction: column;
-  gap: 30px;
+  gap: 45px;
   font-size: 1.22rem;
   position: relative;
 }
 
 .hamburger-toggle {
   position: absolute;
-  top: 10px; 
-  left: 25px;
+  top: 30px; 
+  left: 30px;
   cursor: pointer;
   z-index: 20;
   color: white;

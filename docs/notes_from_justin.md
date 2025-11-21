@@ -32,6 +32,10 @@ a
 ## Tasks 11-3-2025
 - [X] Update Justin's bad code to fix the layout
 - [] Work on GPS Widget (2D) - Figure out Leaflet (DONE), How Leaflet Works (DONE), How to Draw Stuff (Intitially focus on drawing anything, will eventually be an arrow following the trajectory of the drone), Figure out how to add New ROS2 Topic (Subscribe to GPS Topic of Drone)
+- [] How to update the map based on position 
+	- Mock up position of the drone and have GPS Telemetry update the position/icon - for coordinates, just interate through a loop of coordinates (or hard code, but loop makes more sense) so we can see the movement. No ROS2 connection for now, will incorporate later. Have the Card relay the updating position
+	- We want to see the icon update its position continuously
+- [] Figure out auto-resizing and how to make UI do that for various screen types
 -[X] Going to need to figure out a gps/map module that can be predownloaded to show location of drone when flying
 -[X] Might need to include a status to show we are connected to the drone from the pane
 -[] Rotation of Drone/Animation Three.js as framework https://eyes.nasa.gov/apps/mars2020/#/home 

@@ -9,6 +9,10 @@ import "../index.css";
 import StatusBadge from "../components/StatusBadge";
 import "leaflet/dist/leaflet.css";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import { LeafletTrackingMarker } from "react-leaflet-tracking-marker";
+import AirplaneLogo from "../pictures/AirplaneLogo.png";
+import L from "leaflet";
+
 
 const { Content } = Layout;
 const { Title, Text } = Typography;
@@ -34,30 +38,69 @@ const DroneStatusPanel: React.FC<DroneStatusPanelProps> = ({ data }) => (
   </Card>
 );
 
+// GPS Panel - Updated with tracking icon and mock data to show position movement
+// mockPath: loop of lat/long coords to show movement
+const mockPath: [number, number][] = [];
+let lat = 39.0997;
+let long = -94.5786;
+for (let i = 0; i < 40; i++) {
+  mockPath.push([lat, long]);
+  lat += 0.0005;
+  long -= 0.00025;
+}
+
+// L.icon is how Leaflet defines custom marker icons
+const droneIcon = L.icon({
+  iconUrl: AirplaneLogo,
+  iconSize: [50, 50],
+  iconAnchor: [25, 25], // Tells Leaflet which point in the icon is the "tio" of the marker (center)
+});
+
+// GPSMapPanel = functional React component
+// index tracks which point in the path the drone is currently at]
+// position is the current lat/long for the drone marker
+// prevPosition is the previous coordinate, uses it for smooth animation with react-leaflet-tracking-marker
 const GPSMapPanel: React.FC = () => {
-  const position: [number, number] = [39.0997, -94.5786]; // Kansas City
+  const [index, setIndex] = useState(0);
+  const [position, setPosition] = useState<[number, number]>(mockPath[0]);
+  const [prevPosition, setPrevPosition] = useState<[number, number]>(mockPath[0]);
+
+  // Most of the logic is to update the position every second to the next point in the mockPath
+  useEffect(() => {
+    const interval = setInterval(() => { // setInterval is a built-in JS function that runs a function repeatedly at a set time interval (1000 miliseconds = 1 second here)
+      setIndex((prev) => { // updates index, pass a function to get latest state value
+        const next = (prev + 1) % mockPath.length; // moves to the next point, goes back to 0 if at end of path
+        setPrevPosition(position); // updates previous position to current before changing
+        setPosition(mockPath[next]); // updates the current drone position to the next point
+        return next; // returns the new index 
+      });
+    }, 1000);
+    return () => clearInterval(interval); // cleanup function. react calls it automatically when component unmounts or dependency changes 
+  }, [position]);
 
   return (
     <Card title="GPS Map" className="telemetry-card panel-gps-map">
       <div style={{ height: "400px", width: "100%" }}>
-        <MapContainer
-          center={position}
-          zoom={13}
-          scrollWheelZoom={true}
-          style={{ height: "100%", width: "100%" }}
-        >
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
-          <Marker position={position}>
-            <Popup>Hello from Kansas City!</Popup>
-          </Marker>
+        <MapContainer center={position} zoom={15} scrollWheelZoom style={{ height: "100%", width: "100%" }}>
+          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+          <LeafletTrackingMarker
+            icon={droneIcon}
+            position={position}
+            previousPosition={prevPosition}
+            duration={1000}
+          >
+            <Popup> 
+              <b>Drone Tracking</b><br /> 
+              Lat: {position[0]}<br />
+              Long: {position[1]}
+            </Popup>
+          </LeafletTrackingMarker>
         </MapContainer>
       </div>
     </Card>
   );
 };
+
 
 const Aircraft3DModelPanel: React.FC = () => (
   <Card title="Aircraft 3D Model" className="telemetry-card panel-aircraft-3d">
