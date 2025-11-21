@@ -8,7 +8,7 @@ import { quatToEulerRPY, timeToSeconds } from "../utils/conversions";
 import "../index.css";
 import StatusBadge from "../components/StatusBadge";
 import "leaflet/dist/leaflet.css";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, Polyline } from "react-leaflet";
 import { LeafletTrackingMarker } from "react-leaflet-tracking-marker";
 import AirplaneLogo from "../pictures/AirplaneLogo.png";
 import L from "leaflet";
@@ -41,12 +41,20 @@ const DroneStatusPanel: React.FC<DroneStatusPanelProps> = ({ data }) => (
 // GPS Panel - Updated with tracking icon and mock data to show position movement
 // mockPath: loop of lat/long coords to show movement
 const mockPath: [number, number][] = [];
-let lat = 39.0997;
-let long = -94.5786;
-for (let i = 0; i < 40; i++) {
-  mockPath.push([lat, long]);
-  lat += 0.0005;
-  long -= 0.00025;
+
+const centerLat = 39.0997;
+const centerLng = -94.5786;
+
+const radius = 0.003; 
+const totalPoints = 40;
+
+for (let i = 0; i < totalPoints; i++) {
+  const angle = (2 * Math.PI * i) / totalPoints; // full circle
+  
+  const lat = centerLat + radius * Math.sin(angle);
+  const lng = centerLng + radius * Math.cos(angle);
+
+  mockPath.push([lat, lng]);
 }
 
 // L.icon is how Leaflet defines custom marker icons
@@ -57,13 +65,14 @@ const droneIcon = L.icon({
 });
 
 // GPSMapPanel = functional React component
-// index tracks which point in the path the drone is currently at]
+// index tracks which point in the path the drone is currently at
 // position is the current lat/long for the drone marker
 // prevPosition is the previous coordinate, uses it for smooth animation with react-leaflet-tracking-marker
 const GPSMapPanel: React.FC = () => {
   const [index, setIndex] = useState(0);
   const [position, setPosition] = useState<[number, number]>(mockPath[0]);
   const [prevPosition, setPrevPosition] = useState<[number, number]>(mockPath[0]);
+  const [trail, setTrail] = useState<[number, number][]>([mockPath[0]]); // creates state called trail to store information (what the polyline uses to draw the path)
 
   // Most of the logic is to update the position every second to the next point in the mockPath
   useEffect(() => {
@@ -72,6 +81,7 @@ const GPSMapPanel: React.FC = () => {
         const next = (prev + 1) % mockPath.length; // moves to the next point, goes back to 0 if at end of path
         setPrevPosition(position); // updates previous position to current before changing
         setPosition(mockPath[next]); // updates the current drone position to the next point
+        setTrail((oldTrail) => [...oldTrail, mockPath[next]]); // adds the next point to the trail every time the drone movements
         return next; // returns the new index 
       });
     }, 1000);
@@ -83,6 +93,7 @@ const GPSMapPanel: React.FC = () => {
       <div style={{ height: "400px", width: "100%" }}>
         <MapContainer center={position} zoom={15} scrollWheelZoom style={{ height: "100%", width: "100%" }}>
           <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+          <Polyline positions={trail} /> 
           <LeafletTrackingMarker
             icon={droneIcon}
             position={position}
