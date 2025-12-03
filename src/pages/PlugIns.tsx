@@ -1,4 +1,18 @@
+import React from "react";
+import { Typography } from "antd";
+import StatusBadge from "../components/StatusBadge";
+
+const { Title } = Typography;
+
 const PlugIns: React.FC = () => {
-  return <h1>Plug-Ins</h1>;
-}
+  return (
+    <div className="plugins-wrapper">
+      <div className="plugins-header">
+        <Title level={2}>Plug-Ins</Title>
+        <StatusBadge />
+      </div>
+    </div>
+  );
+};
+
 export default PlugIns;

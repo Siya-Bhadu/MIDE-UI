@@ -61,6 +61,13 @@ ros2 launch rosbridge_server rosbridge_websocket_launch.xml
 ```
 npm run dev
 ```
+## Additional installations
 
+```
+npm install leaflet react-leaflet
+```
 
+```
+npm install react-leaflet-tracking-marker
+```
 
