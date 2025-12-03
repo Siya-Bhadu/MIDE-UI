@@ -61,7 +61,7 @@ for (let i = 0; i < totalPoints; i++) {
 const droneIcon = L.icon({
   iconUrl: AirplaneLogo,
   iconSize: [50, 50],
-  iconAnchor: [25, 25], // Tells Leaflet which point in the icon is the "tio" of the marker (center)
+  iconAnchor: [25, 25], // Tells Leaflet which point in the icon is the "tip" of the marker (center)
 });
 
 // GPSMapPanel = functional React component
