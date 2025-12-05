@@ -56,6 +56,7 @@
   min-width: 0;
 }
 
+
 /* Header section */
 .telemetry-header {
   display: flex;
@@ -79,12 +80,13 @@
 /* Generic telemetry panel/card styling */
 .telemetry-card {
   border-radius: 8px;
-  min-height: 240px;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
   padding: 12px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  flex: 1;
+  overflow: auto;
 }
 
 /* Center content inside placeholder panels */
@@ -99,7 +101,8 @@
 .panel-gps-map { min-height: 400px; }
 .panel-aircraft-3d { min-height: 530px; }
 .panel-chart { min-height: 415px; }
-.panel-drone-status { min-height: 400px; }
+.panel-drone-status { min-height: 415px; }
+
 
 /* InfoBox styling */
 .info-box {
@@ -121,6 +124,7 @@
   display: flex;
   flex-direction: column;
   width: 100%;
+  height: 100vh; /* Changed: use viewport height instead of 100% */
   min-width: 0;
 }
 
@@ -129,6 +133,13 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
+  flex-shrink: 0; /* Added: prevent header from shrinking */
+}
+
+/* Added: Make the resizable container fill remaining space */
+.missionplanner-wrapper > div:last-child {
+  flex: 1;
+  min-height: 0; /* Important for flex children */
 }
 
 .home-wrapper {
@@ -136,6 +147,7 @@
   display: flex;
   flex-direction: column;
   width: 100%;
+  height: 100vh; /* Changed: use viewport height instead of 100% */
   min-width: 0;
 }
 
@@ -144,6 +156,13 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
+  flex-shrink: 0; /* Added: prevent header from shrinking */
+}
+
+/* Added: Make the resizable container fill remaining space */
+.home-wrapper > div:last-child {
+  flex: 1;
+  min-height: 0; /* Important for flex children */
 }
 
 .guidancecontrol-wrapper {
@@ -152,6 +171,7 @@
   flex-direction: column;
   width: 100%;
   min-width: 0;
+  height: 100vh; /* Changed: use viewport height instead of 100% */
 }
 
 .guidancecontrol-header {
@@ -159,8 +179,14 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
+  flex-shrink: 0; /* Added: prevent header from shrinking */
 }
 
+/* Added: Make the resizable container fill remaining space */
+.guidancecontrol-wrapper > div:last-child {
+  flex: 1;
+  min-height: 0; /* Important for flex children */
+}
 .plugins-wrapper {
   padding: 16px;
   display: flex;
@@ -189,4 +215,39 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
+}
+
+
+/* Resize handle styling */
+.rrp-handle {
+  background: #ffffff;
+  width: 10px;
+  cursor: col-resize;
+}
+
+/* Vertical handle (between top/bottom panels) */
+.rrp-handle-vertical {
+  background: #ffffff;
+  height: 10px;
+  cursor: row-resize; /* up/down */
+}
+
+/* Panel contents */
+.panel {
+  display: flex;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  background-color: #e9e9e9;
+  padding: 2rem;
+  font-weight: 600;
+  color: #000;
+}
+
+/* Fullscreen panel group */
+.fullscreen-panel-group {
+  width: 100vw;       /* full viewport width */
+  height: 100vh;      /* full viewport height */
+  display: flex;      /* required for panels to resize */
+  flex-direction: row; /* horizontal by default */
 }

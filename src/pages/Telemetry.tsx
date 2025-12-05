@@ -64,7 +64,7 @@ const droneIcon = L.icon({
   iconAnchor: [25, 25], // Tells Leaflet which point in the icon is the "tip" of the marker (center)
 });
 
-// GPSMapPanel = functional React component
+// GPSMapPanel = a functional React component
 // index tracks which point in the path the drone is currently at
 // position is the current lat/long for the drone marker
 // prevPosition is the previous coordinate, uses it for smooth animation with react-leaflet-tracking-marker
