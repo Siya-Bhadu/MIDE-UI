@@ -12,7 +12,9 @@ import { MapContainer, TileLayer, Marker, Popup, Polyline } from "react-leaflet"
 import { LeafletTrackingMarker } from "react-leaflet-tracking-marker";
 import AirplaneLogo from "../pictures/AirplaneLogo.png";
 import L from "leaflet";
-
+import { useRosTopic } from "../hooks/useRosTopic";
+import { NavSatFixMsg } from "../msg/rosMsgs";
+import { HomePositionMsg } from "../msg/rosMsgs";
 
 const { Content } = Layout;
 const { Title, Text } = Typography;
@@ -39,71 +41,77 @@ const DroneStatusPanel: React.FC<DroneStatusPanelProps> = ({ data }) => (
 );
 
 // GPS Panel - Updated with tracking icon and mock data to show position movement
-// mockPath: loop of lat/long coords to show movement
-const mockPath: [number, number][] = [];
-
-const centerLat = 39.0997;
-const centerLng = -94.5786;
-
-const radius = 0.003; 
-const totalPoints = 40;
-
-for (let i = 0; i < totalPoints; i++) {
-  const angle = (2 * Math.PI * i) / totalPoints; // full circle
-  
-  const lat = centerLat + radius * Math.sin(angle);
-  const lng = centerLng + radius * Math.cos(angle);
-
-  mockPath.push([lat, lng]);
-}
-
-// L.icon is how Leaflet defines custom marker icons
 const droneIcon = L.icon({
   iconUrl: AirplaneLogo,
   iconSize: [50, 50],
-  iconAnchor: [25, 25], // Tells Leaflet which point in the icon is the "tip" of the marker (center)
+  iconAnchor: [25, 25],
 });
 
-// GPSMapPanel = a functional React component
-// index tracks which point in the path the drone is currently at
-// position is the current lat/long for the drone marker
-// prevPosition is the previous coordinate, uses it for smooth animation with react-leaflet-tracking-marker
 const GPSMapPanel: React.FC = () => {
-  const [index, setIndex] = useState(0);
-  const [position, setPosition] = useState<[number, number]>(mockPath[0]);
-  const [prevPosition, setPrevPosition] = useState<[number, number]>(mockPath[0]);
-  const [trail, setTrail] = useState<[number, number][]>([mockPath[0]]); // creates state called trail to store information (what the polyline uses to draw the path)
+  // Subscribe to GPS topic
+  const { data: gpsData } = useRosTopic<NavSatFixMsg>(
+    "/mavros/global_position/raw/fix",
+    "sensor_msgs/msg/NavSatFix"
+  );
 
-  // Most of the logic is to update the position every second to the next point in the mockPath
+    // Subscribe to Home Position topic
+  const { data: homeData } = useRosTopic<HomePositionMsg>(
+    "/mavros/home_position/home",
+    "mavros_msgs/msg/HomePosition"
+  );
+
+  // Default center of map = home position if available
+  const defaultPosition: [number, number] = homeData
+    ? [homeData.geo.latitude, homeData.geo.longitude]
+    : [38.6962501, -94.2581944];  // fallback
+
+  const currentPosition: [number, number] = 
+    gpsData?.latitude !== undefined && gpsData?.longitude !== undefined
+      ? [gpsData.latitude, gpsData.longitude]
+      : defaultPosition;
+
+  const [position, setPosition] = useState<[number, number]>(currentPosition);
+  const [prevPosition, setPrevPosition] = useState<[number, number]>(currentPosition);
+  const [trail, setTrail] = useState<[number, number][]>([currentPosition]);
+
   useEffect(() => {
-    const interval = setInterval(() => { // setInterval is a built-in JS function that runs a function repeatedly at a set time interval (1000 miliseconds = 1 second here)
-      setIndex((prev) => { // updates index, pass a function to get latest state value
-        const next = (prev + 1) % mockPath.length; // moves to the next point, goes back to 0 if at end of path
-        setPrevPosition(position); // updates previous position to current before changing
-        setPosition(mockPath[next]); // updates the current drone position to the next point
-        setTrail((oldTrail) => [...oldTrail, mockPath[next]]); // adds the next point to the trail every time the drone movements
-        return next; // returns the new index 
-      });
-    }, 1000);
-    return () => clearInterval(interval); // cleanup function. react calls it automatically when component unmounts or dependency changes 
-  }, [position]);
+    if (gpsData?.latitude !== undefined && gpsData?.longitude !== undefined) {
+      setPrevPosition(position);
+      const newPos: [number, number] = [gpsData.latitude, gpsData.longitude];
+      setPosition(newPos);
+      setTrail((oldTrail) => [...oldTrail, newPos]);
+    }
+  }, [gpsData?.latitude, gpsData?.longitude]);
+
+    useEffect(() => {
+    if (homeData?.geo?.latitude !== undefined && homeData?.geo?.longitude !== undefined) {
+      const homePos: [number, number] = [
+        homeData.geo.latitude,
+        homeData.geo.longitude,
+      ];
+
+      setPrevPosition(homePos);
+      setPosition(homePos);
+      setTrail([homePos]); // optional
+    }
+  }, [homeData]);
 
   return (
     <Card title="GPS Map" className="telemetry-card panel-gps-map">
       <div style={{ height: "400px", width: "100%" }}>
         <MapContainer center={position} zoom={15} scrollWheelZoom style={{ height: "100%", width: "100%" }}>
           <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-          <Polyline positions={trail} /> 
+          <Polyline positions={trail} color="blue" weight={3} />
           <LeafletTrackingMarker
             icon={droneIcon}
             position={position}
             previousPosition={prevPosition}
             duration={1000}
           >
-            <Popup> 
-              <b>Drone Tracking</b><br /> 
-              Lat: {position[0]}<br />
-              Long: {position[1]}
+            <Popup>
+              <b>Drone Position</b><br />
+              Lat: {position[0].toFixed(6)}<br />
+              Long: {position[1].toFixed(6)}
             </Popup>
           </LeafletTrackingMarker>
         </MapContainer>
@@ -111,7 +119,6 @@ const GPSMapPanel: React.FC = () => {
     </Card>
   );
 };
-
 
 const Aircraft3DModelPanel: React.FC = () => (
   <Card title="Aircraft 3D Model" className="telemetry-card panel-aircraft-3d">
