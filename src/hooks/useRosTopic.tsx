@@ -30,7 +30,6 @@ export const useRosTopic = <T,>(
         queue_size: queueSize,
       });
 
-      // ✨ CHANGED: Use 'any' to avoid TypeScript error with ROSLIB types
       const callback = (msg: any) => {
         setData(msg as T);
         setLastUpdate(Date.now());
