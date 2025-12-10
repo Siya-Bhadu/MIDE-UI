@@ -1,11 +1,9 @@
 // src/pages/Telemetry.tsx
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Layout, Row, Col, Card, Tag, Typography } from "antd";
-import ROSLIB from "roslib";
-import { useRos } from "../context/ros_context";
-import { OdometryMsg } from "../msg/OdometryMsg";
-import { quatToEulerRPY, timeToSeconds } from "../utils/conversions";
+import React, { useEffect, useMemo, useState } from "react";
+import { Layout, Row, Col, Card, Typography } from "antd";
+import { quatToEulerRPY} from "../utils/conversions";
 import "../index.css";
+import { useRos } from "../context/ros_context";
 import StatusBadge from "../components/StatusBadge";
 import "leaflet/dist/leaflet.css";
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from "react-leaflet";
@@ -13,8 +11,8 @@ import { LeafletTrackingMarker } from "react-leaflet-tracking-marker";
 import AirplaneLogo from "../pictures/AirplaneLogo.png";
 import L from "leaflet";
 import { useRosTopic } from "../hooks/useRosTopic";
-import { NavSatFixMsg } from "../msg/rosMsgs";
-import { HomePositionMsg } from "../msg/rosMsgs";
+import { NavSatFixMsg, HomePositionMsg, OdometryMsg } from "../msg/rosMsgs";
+
 
 const { Content } = Layout;
 const { Title, Text } = Typography;
@@ -149,51 +147,18 @@ interface TelemetryProps {
 // This is the main driver for the layout and uses the ROS2 connection
 const Telemetry: React.FC<TelemetryProps> = ({
   odomTopic = "mavros/local_position/odom",
-  odomMsgType = "nav_msgs/msg/Odometry", // change to "nav_msgs/Odometry" if using classic rosbridge
+  odomMsgType = "nav_msgs/msg/Odometry",
 }) => {
-  const { ros, isConnected } = useRos();
+  // Use the hook for odometry subscription
+  const { data: odom, lastUpdate } = useRosTopic<OdometryMsg>(odomTopic, odomMsgType);
+  
+  // Convert message timestamp for StatusBadge
+  const lastStamp = useMemo(() => {
+    if (!odom?.header?.stamp) return null;
+    return odom.header.stamp.sec + odom.header.stamp.nanosec / 1e9;
+  }, [odom?.header?.stamp]);
 
-  const [odom, setOdom] = useState<OdometryMsg | null>(null);
-  const [lastStamp, setLastStamp] = useState<number | null>(null);
-  const topicRef = useRef<ROSLIB.Topic | null>(null);
-
-  // Create the Topic only when ros + connection + name are ready
-  const topic = useMemo(() => {
-    if (!ros || !isConnected) return null;
-    try {
-      return new ROSLIB.Topic({
-        ros,
-        name: odomTopic,
-        messageType: odomMsgType,
-        queue_size: 1,
-      });
-    } catch (e) {
-      console.error("[Telemetry] Failed to create Topic:", e);
-      return null;
-    }
-  }, [ros, isConnected, odomTopic, odomMsgType]);
-
-  useEffect(() => {
-    if (!topic) return;
-    topicRef.current = topic;
-
-    const cb = (msg: OdometryMsg) => {
-      setOdom(msg);
-      setLastStamp(timeToSeconds(msg.header));
-    };
-
-    topic.subscribe(cb);
-    console.log(`[Telemetry] Subscribed to ${odomTopic}`);
-
-    return () => {
-      try {
-        topic.unsubscribe(cb);
-        console.log(`[Telemetry] Unsubscribed from ${odomTopic}`);
-      } catch {/* noop */}
-      topicRef.current = null;
-    };
-  }, [topic, odomTopic]);
-
+  // Derived telemetry
   // Derived telemetry
   const pos = odom?.pose.pose.position;
   const ori = odom?.pose.pose.orientation;
