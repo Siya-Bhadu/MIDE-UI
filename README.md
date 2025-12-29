@@ -57,10 +57,10 @@ Run the bridge now
 ros2 launch rosbridge_server rosbridge_websocket_launch.xml
 ```
 ```
-ros2 run say_hi_service service node
+ros2 run guidance_algorithm service node
 ```
 ```
-ros2 run say_hi_service client_bridge
+ros2 run guidance_algorithm bridge node
 ```
 # Running the code
 ```
