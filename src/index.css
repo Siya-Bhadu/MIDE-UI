@@ -47,24 +47,28 @@
 }
 
 /* Telemetry layout */
-/* Telemetry layout wrapper */
 .telemetry-wrapper {
   padding: 16px;
   display: flex;
   flex-direction: column;
   width: 100%;
   min-width: 0;
+  height: 100vh; /* ADD THIS */
 }
 
-
-/* Header section */
 .telemetry-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
+  flex-shrink: 0; /* ADD THIS */
 }
 
+/* ADD THIS BLOCK */
+.telemetry-wrapper > div:last-child {
+  flex: 1;
+  min-height: 0;
+}
 /* Status section inside header */
 .status-section {
   display: flex;
@@ -202,11 +206,17 @@
   margin-bottom: 16px;
 }
 
+.plugins-wrapper > div:last-child {
+  flex: 1;
+  min-height: 0; 
+}
+
 .settings-wrapper {
   padding: 16px;
   display: flex;
   flex-direction: column;
   width: 100%;
+  height: 100vh; 
   min-width: 0;
 }
 
@@ -215,6 +225,13 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
+  flex-shrink: 0; 
+}
+
+
+.settings-wrapper > div:last-child {
+  flex: 1;
+  min-height: 0; 
 }
 
 

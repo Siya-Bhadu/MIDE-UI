@@ -1,6 +1,7 @@
 // src/pages/Telemetry.tsx
 import React, { useEffect, useMemo, useState } from "react";
-import { Layout, Row, Col, Card, Typography } from "antd";
+import { Layout, Typography } from "antd";
+import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { quatToEulerRPY} from "../utils/conversions";
 import "../index.css";
 import { useRos } from "../context/ros_context";
@@ -27,18 +28,19 @@ const InfoBox: React.FC<InfoBoxProps> = ({ label, value }) => (
 
 interface DroneStatusPanelProps { data: InfoBoxProps[]; }
 const DroneStatusPanel: React.FC<DroneStatusPanelProps> = ({ data }) => (
-  <Card title="Drone Status" className="telemetry-card panel-drone-status">
-    <Row gutter={[8, 8]}>
-      {data.map((d, i) => (
-        <Col xs={24} sm={12} key={i}>
-          <InfoBox label={d.label} value={d.value} />
-        </Col>
-      ))}
-    </Row>
-  </Card>
+  <div className="panel">
+    <div style={{ width: '100%' }}>
+      <Text strong style={{ fontSize: '18px', display: 'block', marginBottom: '16px' }}>Drone Status</Text>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '8px' }}>
+        {data.map((d, i) => (
+          <InfoBox key={i} label={d.label} value={d.value} />
+        ))}
+      </div>
+    </div>
+  </div>
 );
 
-// GPS Panel - Updated with tracking icon and mock data to show position movement
+// GPS Panel
 const droneIcon = L.icon({
   iconUrl: AirplaneLogo,
   iconSize: [50, 50],
@@ -46,22 +48,19 @@ const droneIcon = L.icon({
 });
 
 const GPSMapPanel: React.FC = () => {
-  // Subscribe to GPS topic
   const { data: gpsData } = useRosTopic<NavSatFixMsg>(
     "/mavros/global_position/raw/fix",
     "sensor_msgs/msg/NavSatFix"
   );
 
-    // Subscribe to Home Position topic
   const { data: homeData } = useRosTopic<HomePositionMsg>(
     "/mavros/home_position/home",
     "mavros_msgs/msg/HomePosition"
   );
 
-  // Default center of map = home position if available
   const defaultPosition: [number, number] = homeData
     ? [homeData.geo.latitude, homeData.geo.longitude]
-    : [38.6962501, -94.2581944];  // fallback
+    : [38.6962501, -94.2581944];
 
   const currentPosition: [number, number] = 
     gpsData?.latitude !== undefined && gpsData?.longitude !== undefined
@@ -81,7 +80,7 @@ const GPSMapPanel: React.FC = () => {
     }
   }, [gpsData?.latitude, gpsData?.longitude]);
 
-    useEffect(() => {
+  useEffect(() => {
     if (homeData?.geo?.latitude !== undefined && homeData?.geo?.longitude !== undefined) {
       const homePos: [number, number] = [
         homeData.geo.latitude,
@@ -90,13 +89,14 @@ const GPSMapPanel: React.FC = () => {
 
       setPrevPosition(homePos);
       setPosition(homePos);
-      setTrail([homePos]); // optional
+      setTrail([homePos]);
     }
   }, [homeData]);
 
   return (
-    <Card title="GPS Map" className="telemetry-card panel-gps-map">
-      <div style={{ height: "400px", width: "100%" }}>
+    <div className="panel" style={{ padding: '1rem' }}>
+      <Text strong style={{ fontSize: '18px', display: 'block', marginBottom: '8px' }}>GPS Map</Text>
+      <div style={{ height: "calc(100% - 40px)", width: "100%" }}>
         <MapContainer center={position} zoom={15} scrollWheelZoom style={{ height: "100%", width: "100%" }}>
           <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
           <Polyline positions={trail} color="blue" weight={3} />
@@ -114,51 +114,41 @@ const GPSMapPanel: React.FC = () => {
           </LeafletTrackingMarker>
         </MapContainer>
       </div>
-    </Card>
+    </div>
   );
 };
 
 const Aircraft3DModelPanel: React.FC = () => (
-  <Card title="Aircraft 3D Model" className="telemetry-card panel-aircraft-3d">
-    <div className="panel-content-center">
-      <Text type="secondary">3D Model Placeholder</Text>
-    </div>
-  </Card>
+  <div className="panel">
+    <Text type="secondary">3D Model Placeholder</Text>
+  </div>
 );
 
 const TelemetryChartPanel: React.FC = () => (
-  <Card title="Telemetry Chart/List" className="telemetry-card panel-chart">
-    <div className="panel-content-center">
-      <Text type="secondary">List or chart goes here</Text>
-    </div>
-  </Card>
+  <div className="panel">
+    <Text type="secondary">List or chart goes here</Text>
+  </div>
 );
 
 // ───────────────────────────────────────────────────────────────────────────────
 // Main page component with ROS hookup
 // ───────────────────────────────────────────────────────────────────────────────
 interface TelemetryProps {
-  /** Odometry topic name; defaults to MAVROS local position */
   odomTopic?: string;
-  /** rosbridge message type; rosbridge2 uses "nav_msgs/msg/Odometry", classic uses "nav_msgs/Odometry" */
   odomMsgType?: string;
 }
 
-// This is the main driver for the layout and uses the ROS2 connection
 const Telemetry: React.FC<TelemetryProps> = ({
   odomTopic = "mavros/local_position/odom",
   odomMsgType = "nav_msgs/msg/Odometry",
 }) => {
-  // Use the hook for odometry subscription
   const { data: odom, lastUpdate } = useRosTopic<OdometryMsg>(odomTopic, odomMsgType);
   
-  // Convert message timestamp for StatusBadge
   const lastStamp = useMemo(() => {
     if (!odom?.header?.stamp) return null;
     return odom.header.stamp.sec + odom.header.stamp.nanosec / 1e9;
   }, [odom?.header?.stamp]);
 
-  // Derived telemetry
   // Derived telemetry
   const pos = odom?.pose.pose.position;
   const ori = odom?.pose.pose.orientation;
@@ -172,39 +162,65 @@ const Telemetry: React.FC<TelemetryProps> = ({
     return Math.sqrt(twLin.x * twLin.x + twLin.y * twLin.y);
   }, [twLin?.x, twLin?.y]);
 
-  // Helper to show numbers nicely
   const fmt = (v?: number | null, digits = 3) =>
     typeof v === "number" ? v.toFixed(digits) : "-";
 
-  // Build the status grid (feeds InfoBox components)
   const droneStatusData: InfoBoxProps[] = useMemo(
     () => [
       { label: "Altitude (m)", value: fmt(pos?.z) },
       { label: "Ground Speed (m/s)", value: fmt(groundSpeed) },
-      { label: "Dist to WP (m)", value: "-" },           // needs /mavros/distance_sensor or mission topic
+      { label: "Dist to WP (m)", value: "-" },
       { label: "Roll (deg)", value: fmt((roll * 180) / Math.PI) },
       { label: "Vertical Speed (m/s)", value: fmt(twLin?.z) },
       { label: "Pitch (deg)", value: fmt((pitch * 180) / Math.PI) },
-      { label: "DistToMAV (m)", value: "-" },            // requires another topic/reference
+      { label: "DistToMAV (m)", value: "-" },
       { label: "Yaw (deg)", value: fmt((yaw * 180) / Math.PI) },
     ],
     [pos?.z, groundSpeed, roll, pitch, yaw, twLin?.z]
   );
 
-  // Updated & Moved Styling to index.css - Siya
-    return (
+  return (
     <Content className="telemetry-wrapper">
       <div className="telemetry-header">
         <Title level={2}>Telemetry</Title>
         <StatusBadge topicName={odomTopic} lastStamp={lastStamp} />
       </div>
 
-      <Row gutter={[16, 16]}>
-        <Col xs={24} lg={12}><Aircraft3DModelPanel /></Col>
-        <Col xs={24} lg={12}><GPSMapPanel /></Col>
-        <Col xs={24} lg={12}><DroneStatusPanel data={droneStatusData} /></Col>
-        <Col xs={24} lg={12}><TelemetryChartPanel /></Col>
-      </Row>
+      <div>
+        <PanelGroup
+          autoSaveId='telemetry-panels'
+          direction='horizontal'
+          className='rounded-lg border h-full'
+        >
+          {/* Left panel - split vertically */}
+          <Panel defaultSize={50} minSize={20}>
+            <PanelGroup direction="vertical" className="h-full w-full">
+              <Panel defaultSize={50} minSize={20}>
+                <Aircraft3DModelPanel />
+              </Panel>
+              <PanelResizeHandle className="rrp-handle-vertical" />
+              <Panel defaultSize={50} minSize={20}>
+                <DroneStatusPanel data={droneStatusData} />
+              </Panel>
+            </PanelGroup>
+          </Panel>
+
+          <PanelResizeHandle className="rrp-handle" />
+
+          {/* Right panel - split vertically */}
+          <Panel defaultSize={50} minSize={20}>
+            <PanelGroup direction="vertical" className="h-full w-full">
+              <Panel defaultSize={50} minSize={20}>
+                <GPSMapPanel />
+              </Panel>
+              <PanelResizeHandle className="rrp-handle-vertical" />
+              <Panel defaultSize={50} minSize={20}>
+                <TelemetryChartPanel />
+              </Panel>
+            </PanelGroup>
+          </Panel>
+        </PanelGroup>
+      </div>
     </Content>
   );
 };
