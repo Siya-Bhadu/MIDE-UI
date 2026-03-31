@@ -14,7 +14,7 @@ export function useRadarTrack(): RadarTrack | null {
     const [track, setTrack] = useState<RadarTrack | null>(null);
  
     useEffect(() => {
-        const ws = new WebSocket('ws://localhost:9001');
+        const ws = new WebSocket('ws://10.10.70.80:9001');
  
         ws.onmessage = (event) => {
             try {
